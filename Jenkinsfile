@@ -6,7 +6,7 @@ node {
     }
     stage('Testing Docker & AWS') {
         sh 'docker -v'
-        sh 'aws --version'
+        sh '/home/ubuntu/.local/bin/aws --version'
     }
     stage("Linting Dockerfile") {
         echo 'Linting...'
