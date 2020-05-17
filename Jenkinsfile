@@ -11,7 +11,7 @@ node {
         echo 'Linting...'
         sh 'hadolint Dockerfile'
     }
-    stage('Building and pushing Docker image') {
+    stage('Build & push Docker image') {
         echo 'Building Docker Image from Dockerfile'
         withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'dockerPassword', usernameVariable: 'dockerUser')]) {
             sh "docker login -u ${env.dockerUser} -p ${env.dockerPassword}"
@@ -19,6 +19,15 @@ node {
             sh "docker tag ${dockerpath} ${dockerpath}"
             sh "docker push ${dockerpath}"
             echo 'Pushing to DockerHub finished'
+        }
+    }
+    stage('Deploy to AWS EKS') {
+        echo 'Deploying to AWS'
+        dir('k8s') {
+            withAWS(credentials: 'aws-capstone', region: 'us-west-2') {
+                sh "aws eks --region us-west-2 update-kubeconfig --name Capstone"
+                sh 'kubectl apply -f app-deployment.yml'
+            }
         }
     }
 }

@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def hello():
-    return "Udacity Capstone Project | ND DevOps: Flask application"
+    return "Udacity Capstone Project | ND DevOps: Flask application, edited version"
 
 
 if __name__ == "__main__":
