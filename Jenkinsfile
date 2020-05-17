@@ -10,6 +10,5 @@ node {
     stage("Linting Dockerfile") {
         echo 'Linting...'
         sh 'hadolint Dockerfile'
-        sh 'finish linting'
     }
 }
