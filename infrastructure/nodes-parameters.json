@@ -1,0 +1,30 @@
+[
+    {
+        "ParameterKey": "EnvironmentName",
+        "ParameterValue": "Udacity-Capstone"
+    },
+    {
+        "ParameterKey": "KeyName",
+        "ParameterValue": "capstone-eks-ssh"
+    },
+    {
+        "ParameterKey": "NodeImageId",
+        "ParameterValue": "ami-065418523a44331e5"
+    },
+    {
+        "ParameterKey": "NodeInstanceType",
+        "ParameterValue": "t3.micro"
+    },
+    {
+        "ParameterKey": "NodeAutoScalingGroupMinSize",
+        "ParameterValue": "1"
+    },
+    {
+        "ParameterKey": "NodeAutoScalingGroupMaxSize",
+        "ParameterValue": "4"
+    },
+    {
+        "ParameterKey": "NodeAutoScalingGroupDesiredCapacity",
+        "ParameterValue": "3"
+    }
+]

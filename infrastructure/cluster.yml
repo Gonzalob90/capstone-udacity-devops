@@ -1,0 +1,32 @@
+Description: >
+    Gonzalo Barrientos / Capstone Project / EKS Cluster
+
+Parameters:
+
+    EnvironmentName:
+        Description: An environment name that will be prefixed to resources names
+        Type: String
+
+Resources:
+    EKSCluster:
+        Type: AWS::EKS::Cluster
+        Properties:
+            Name: Capstone
+            Version: '1.15'
+            RoleArn:
+                Fn::ImportValue: !Sub "${EnvironmentName}-ROLE-ARN"
+            ResourcesVpcConfig:
+                SecurityGroupIds:
+                    - Fn::ImportValue: !Sub "${EnvironmentName}-SG-CLUSTER"
+                SubnetIds:
+                    Fn::Split:
+                        - ","
+                        - Fn::ImportValue: !Sub "${EnvironmentName}-SUBNETS"
+
+Outputs:
+
+    EKSCluster:
+        Description: A reference to the EKS Cluster
+        Value: !Ref EKSCluster
+        Export:
+            Name: !Sub ${EnvironmentName}-EKS-CLUSTER

@@ -1,0 +1,14 @@
+[
+    {
+        "ParameterKey": "EnvironmentName",
+        "ParameterValue": "Udacity-Capstone"
+    },
+    {
+        "ParameterKey": "LocalIP",
+        "ParameterValue": "46.64.65.112/32"
+    },
+    {
+        "ParameterKey": "JenkinsKeySSH",
+        "ParameterValue": "capstone-jenkins-ssh"
+    }
+]

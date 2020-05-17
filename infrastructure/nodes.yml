@@ -1,0 +1,223 @@
+Description: >
+    Gonzalo Barrientos / Capstone Project / Node Group
+
+Parameters:
+
+    EnvironmentName:
+        Description: An environment name that will be prefixed to resources names
+        Type: String
+
+    KeyName:
+        Description: The EC2 Key Pair to allow SSH access to the instances
+        Type: AWS::EC2::KeyPair::KeyName
+        Default: capstone-eks-ssh
+
+    NodeImageId:
+        Description: AMI ID for the node instances
+        Type: AWS::EC2::Image::Id
+
+    NodeInstanceType:
+        Description: EC2 Instance type for the node instances
+        Type: String
+        Default: t3.micro
+
+    NodeAutoScalingGroupMinSize:
+        Description: Minimum size of Node Group Auto-Scaling Group
+        Type: Number
+        Default: 1
+
+    NodeAutoScalingGroupMaxSize:
+        Description: Maximum size of Node Group Auto-Scaling Group
+        Type: Number
+        Default: 4
+
+    NodeAutoScalingGroupDesiredCapacity:
+        Description: Desired capacity of Node Group Auto-Scaling Group
+        Type: Number
+        Default: 3
+
+Resources:
+
+    NodeInstanceProfile:
+        Type: AWS::IAM::InstanceProfile
+        Properties:
+            Path: "/"
+            Roles:
+                - !Ref NodeInstanceRole
+
+    NodeInstanceRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Effect: Allow
+                      Principal:
+                          Service:
+                              - ec2.amazonaws.com
+                      Action:
+                          - sts:AssumeRole
+            Path: '/'
+            ManagedPolicyArns:
+                - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+                - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+                - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+    NodeSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: Security group for all nodes in the cluster
+            VpcId:
+                Fn::ImportValue: !Sub "${EnvironmentName}-VPCID"
+            Tags:
+                - Key:
+                    !Sub
+                      - 'kubernetes.io/cluster/${ClusterName}'
+                      - ClusterName:
+                            Fn::ImportValue: !Sub "${EnvironmentName}-EKS-CLUSTER"
+                  Value: 'owned'
+
+    NodeSecurityGroupIngress:
+        Type: AWS::EC2::SecurityGroupIngress
+        DependsOn: NodeSecurityGroup
+        Properties:
+            Description: Allow node to communicate with each other
+            GroupId: !Ref NodeSecurityGroup
+            SourceSecurityGroupId: !Ref NodeSecurityGroup
+            IpProtocol: '-1'
+            FromPort: 0
+            ToPort: 65535
+
+    NodeSecurityGroupFromControlPlaneIngress:
+        Type: AWS::EC2::SecurityGroupIngress
+        DependsOn: NodeSecurityGroup
+        Properties:
+            Description: Allow worker Kubelets and pods to receive communication from the cluster control plane
+            GroupId: !Ref NodeSecurityGroup
+            SourceSecurityGroupId:
+                Fn::ImportValue: !Sub "${EnvironmentName}-SG-CLUSTER"
+            IpProtocol: tcp
+            FromPort: 1025
+            ToPort: 65535
+
+    ControlPlaneEgressToNodeSecurityGroup:
+        Type: AWS::EC2::SecurityGroupEgress
+        DependsOn: NodeSecurityGroup
+        Properties:
+            Description: Allow the cluster control plane to communicate with worker Kubelet and pods
+            GroupId:
+                Fn::ImportValue: !Sub "${EnvironmentName}-SG-CLUSTER"
+            DestinationSecurityGroupId: !Ref NodeSecurityGroup
+            IpProtocol: tcp
+            FromPort: 1025
+            ToPort: 65535
+
+    NodeSecurityGroupFromControlPlaneOn443Ingress:
+        Type: AWS::EC2::SecurityGroupIngress
+        DependsOn: NodeSecurityGroup
+        Properties:
+            Description: Allow pods running extension API servers on port 443 to receive communication from cluster control plane
+            GroupId: !Ref NodeSecurityGroup
+            SourceSecurityGroupId:
+                Fn::ImportValue: !Sub "${EnvironmentName}-SG-CLUSTER"
+            IpProtocol: tcp
+            FromPort: 443
+            ToPort: 443
+
+    ControlPlaneEgressToNodeSecurityGroupOn443:
+        Type: AWS::EC2::SecurityGroupEgress
+        DependsOn: NodeSecurityGroup
+        Properties:
+            Description: Allow the cluster control plane to communicate with pods running extension API servers on port 443
+            GroupId:
+                Fn::ImportValue: !Sub "${EnvironmentName}-SG-CLUSTER"
+            DestinationSecurityGroupId: !Ref NodeSecurityGroup
+            IpProtocol: tcp
+            FromPort: 443
+            ToPort: 443
+
+    ClusterControlPlaneSecurityGroupIngress:
+        Type: AWS::EC2::SecurityGroupIngress
+        DependsOn: NodeSecurityGroup
+        Properties:
+            Description: Allow pods to communicate with the cluster API Server
+            GroupId:
+                Fn::ImportValue: !Sub "${EnvironmentName}-SG-CLUSTER"
+            SourceSecurityGroupId: !Ref NodeSecurityGroup
+            IpProtocol: tcp
+            ToPort: 443
+            FromPort: 443
+
+    NodeGroup:
+        Type: AWS::AutoScaling::AutoScalingGroup
+        Properties:
+            DesiredCapacity: !Ref NodeAutoScalingGroupDesiredCapacity
+            LaunchConfigurationName: !Ref NodeLaunchConfig
+            MinSize: !Ref NodeAutoScalingGroupMinSize
+            MaxSize: !Ref NodeAutoScalingGroupMaxSize
+            VPCZoneIdentifier:
+                -   Fn::ImportValue: !Sub "${EnvironmentName}-PRIV-NETS"
+            Tags:
+                - Key: Name
+                  Value:
+                    !Sub
+                        - "${ClusterName}-CapstoneNodesGroup-Node"
+                        - ClusterName:
+                              Fn::ImportValue: !Sub "${EnvironmentName}-EKS-CLUSTER"
+                  PropagateAtLaunch: 'true'
+                - Key:
+                    !Sub
+                      - 'kubernetes.io/cluster/${ClusterName}'
+                      - ClusterName:
+                            Fn::ImportValue: !Sub "${EnvironmentName}-EKS-CLUSTER"
+                  Value: 'owned'
+                  PropagateAtLaunch: 'true'
+        UpdatePolicy:
+            AutoScalingRollingUpdate:
+                MaxBatchSize: '1'
+                MinInstancesInService: !Ref NodeAutoScalingGroupDesiredCapacity
+                PauseTime: 'PT5M'
+
+    NodeLaunchConfig:
+        Type: AWS::AutoScaling::LaunchConfiguration
+        Properties:
+            AssociatePublicIpAddress: 'true'
+            IamInstanceProfile: !Ref NodeInstanceProfile
+            ImageId: !Ref NodeImageId
+            InstanceType: !Ref NodeInstanceType
+            KeyName: !Ref KeyName
+            SecurityGroups:
+                - !Ref NodeSecurityGroup
+            BlockDeviceMappings:
+                -   DeviceName: /dev/xvda
+                    Ebs:
+                        VolumeSize: 8
+                        VolumeType: gp2
+                        DeleteOnTermination: true
+            UserData:
+                Fn::Base64:
+                    !Sub
+                        - |
+                            #!/bin/bash
+                            set -o xtrace
+                            /etc/eks/bootstrap.sh ${ClusterName}
+                            /opt/aws/bin/cfn-signal --exit-code $? \
+                                     --stack  ${AWS::StackName} \
+                                     --resource NodeGroup  \
+                                     --region ${AWS::Region}
+                        - ClusterName:
+                              Fn::ImportValue: !Sub "${EnvironmentName}-EKS-CLUSTER"
+
+Outputs:
+
+    NodeInstanceRole:
+        Description: The node instance role
+        Value: !GetAtt NodeInstanceRole.Arn
+        Export:
+            Name: !Sub ${EnvironmentName}-ROLE-NODE
+
+    NodeSecurityGroup:
+        Description: The security group for the node group
+        Value: !Ref NodeSecurityGroup
+        Export:
+            Name: !Sub ${EnvironmentName}-SG-NODE

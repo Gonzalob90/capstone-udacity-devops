@@ -1,0 +1,33 @@
+Description: >
+    Gonzalo Barrientos / IAM Role for EKS
+
+Parameters:
+
+    EnvironmentName:
+        Description: An Environment name that will be prefixed to resources
+        Type: String
+
+Resources:
+
+    EKSClusterRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Effect: Allow
+                      Principal:
+                            Service:
+                                - eks.amazonaws.com
+                      Action:
+                            - sts:AssumeRole
+            ManagedPolicyArns:
+                - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+
+Outputs:
+
+    RoleArn:
+        Description: The role that Amazon EKS will use to create AWS resources for Kubernetes clusters
+        Value: !GetAtt EKSClusterRole.Arn
+        Export:
+          Name: !Sub ${EnvironmentName}-ROLE-ARN
