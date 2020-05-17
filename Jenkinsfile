@@ -9,10 +9,7 @@ pipeline {
         stage('Lint Dockerfile') {
             steps {
                 script {
-                    checkout scm
-                    def hadolintImage = docker.build("hadolint/hadolint:latest-debian")
-
-                    hadolintImage.inside {
+                    docker.image('hadolint/hadolint:latest-debian').inside() {
                         sh 'hadolint Dockerfile'
                     }
                 }
