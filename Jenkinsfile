@@ -1,15 +1,15 @@
 node {
+    def registry = 'gonzalob90/udacity-capstone-project'
     stage('Checking out git repo') {
-      echo 'Checkout...'
-      checkout scm
+        echo 'Checkout repo...'
+        checkout scm
     }
-    stage('Checking docker') {
-      sh 'git --version'
-      sh 'docker -v'
+    stage('Testing docker') {
+        sh 'docker -v'
     }
     stage("Linting Dockerfile") {
-      echo 'Linting...'
-      sh '/home/ubuntu/.local/bin/hadolint Dockerfile'
-      sh 'finish linting'
+        echo 'Linting...'
+        sh 'hadolint Dockerfile'
+        sh 'finish linting'
     }
 }
