@@ -6,6 +6,14 @@ pipeline {
     }
     agent any
     stages {
+        stage ('Test docker') {
+            agent {
+                docker { image 'hadolint/hadolint:latest-debian' }
+            }
+            steps {
+                sh 'docker -v'
+            }
+        }
         stage('Lint Dockerfile') {
             steps {
                 script {
