@@ -29,7 +29,7 @@ node {
                 sh 'aws eks --region us-west-2 update-kubeconfig --name Capstone'
                 sh 'kubectl apply -f app-deployment.yml'
                 sh 'kubectl get pods'
-                sh 'kubectl set image deployment/capstone-app capstone-app=${dockerpath}:latest'
+                sh 'kubectl set image deployment/capstone-app capstone-app=gonzalob90/udacity-capstone-project:latest'
                 sh 'kubectl rollout status deployment capstone-app'
                 sh 'kubectl get pods'
                 sh 'kubectl get deployment capstone-app'
