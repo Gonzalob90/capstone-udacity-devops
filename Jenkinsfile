@@ -4,7 +4,7 @@ pipeline {
     environment {
         dockerhubCredentials = 'docker-hub-credentials'
     }
-    agent any
+    agent none
     stages {
         stage ('Test docker') {
             agent {
