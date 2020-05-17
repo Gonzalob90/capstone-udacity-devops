@@ -25,7 +25,7 @@ node {
         echo 'Deploying to AWS'
         dir('k8s') {
             withAWS(credentials: 'aws-capstone', region: 'us-west-2') {
-                sh "aws eks --region us-west-2 update-kubeconfig --name Capstone"
+                sh 'aws eks --region us-west-2 update-kubeconfig --name Capstone'
                 sh 'kubectl apply -f app-deployment.yml'
             }
         }
