@@ -4,8 +4,9 @@ node {
         echo 'Checkout repo...'
         checkout scm
     }
-    stage('Testing docker') {
+    stage('Testing Docker & AWS') {
         sh 'docker -v'
+        sh 'aws --version'
     }
     stage("Linting Dockerfile") {
         echo 'Linting...'
